@@ -1,46 +1,54 @@
 import MeetupDetail from "../../components/meetups/MeetupDetail";
+import { MongoClient, ObjectId } from "mongodb";
 
-function MeetupDetails() {
+function MeetupDetails(props) {
   return (
     <MeetupDetail
-      src="https://eadn-wc04-3972048.nxedge.io/wp-content/uploads/2022/04/santamonica.jpg"
+      src={props.meetupData.image}
       alt="first meetup place"
-      title="First Meetup Place"
-      address="Some Address 10"
-      description="The most visted place in the world"
+      title={props.meetupData.title}
+      address={props.meetupData.address}
+      description={props.meetupData.description}
     />
   );
 }
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  const client = await MongoClient.connect(
+    "mongodb+srv://akuna444:<password>@cluster0.ex41jje.mongodb.net/?retryWrites=true&w=majority"
+  );
+  const db = client.db();
+  const meetupsCollection = db.collection("meetups");
+
+  const meetups = meetupsCollection.find({}, { id: 1 });
+
   return {
     fallback: false,
-    paths: [
-      {
-        params: {
-          meetupId: "m1",
-        },
+    paths: meetups.map((meetup) => ({
+      params: {
+        meetupId: meetup._id.toString(),
       },
-      {
-        params: {
-          meetupId: "m2",
-        },
-      },
-    ],
+    })),
   };
 }
 
 export async function getStaticProps(context) {
-  const meetupId = context.params.meetupId;
-  console.log(meetupId);
+  const client = await MongoClient.connect(
+    "mongodb+srv://akuna444:<password>@cluster0.ex41jje.mongodb.net/?retryWrites=true&w=majority"
+  );
+  const db = client.db();
+  const meetupsCollection = db.collection("meetups");
+
+  const selectedMeetup = await meetupsCollection.findOne({
+    _id: ObjectId(meetupId),
+  });
+  client.close();
+
   return {
     props: {
       meetupData: {
-        src: "https://eadn-wc04-3972048.nxedge.io/wp-content/uploads/2022/04/santamonica.jpg",
-        alt: "first meetup place",
-        title: "First Meetup Place",
-        address: "Some Address 10",
-        description: "The most visted place in the world",
+        ...selectedMeetup,
+        id: selectedMeetup._id.toString(),
       },
     },
   };
